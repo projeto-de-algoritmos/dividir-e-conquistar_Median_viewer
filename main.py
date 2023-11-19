@@ -87,6 +87,30 @@ class MedianVisualizer:
         )
 
         return esquerda, direita
+    
+    def criar_array(self):
+        nums = self.entrada.get("1.0", "end-1c").split()
+        try:
+            nums = [int(num) for num in nums]
+            self.mensagem_erro_label.config(text="")  # Limpa a mensagem de erro se a conversão for bem-sucedida
+        except ValueError:
+            self.mensagem_erro_label.config(text="Erro: Por favor, insira apenas números.")
+            return
+        self.limpar_array()
+        self.data = nums
+        self.draw_data()
+    
+    def limpar_array(self):
+        data = [0 for _ in range(len(self.data))]
+        self.data = data
+        for rect in self.rectangles:
+            self.canvas.delete(rect)
+        for text in self.texts:
+            self.canvas.delete(text)
+
+        self.rectangles.clear()
+        self.texts.clear()
+        self.draw_data()
 
     def criar_widgets(self):
         janela_esq, janela_dir = self.criar_janelas()
@@ -96,6 +120,8 @@ class MedianVisualizer:
 
         entrada_label = tk.Label(janela_esq, text="Digite os items do seu array separados por espaço:")
         entrada_label.pack()
+        self.mensagem_erro_label = tk.Label(janela_esq, text="", fg="red")
+        self.mensagem_erro_label.pack()
 
         self.entrada = tk.Text(janela_esq, wrap=tk.WORD, height=2, width=40)
         self.entrada.pack()
@@ -103,10 +129,16 @@ class MedianVisualizer:
         botao_frame = tk.Frame(janela_esq)
         botao_frame.pack(pady=self.small_pad)
 
-        limpar_botao = tk.Button(
-            botao_frame, text="Limpar"
+        criar_botao = tk.Button(
+            botao_frame, text="Criar", command=self.criar_array
         )
-        limpar_botao.pack(side="left", padx=self.small_pad, fill="both", expand=True)
+        criar_botao.pack(side="top", padx=self.small_pad,  fill="both", expand=True)
+
+
+        limpar_botao = tk.Button(
+            botao_frame, text="Limpar", command=self.limpar_array
+        )
+        limpar_botao.pack(side="left", padx=self.small_pad,  fill="both", expand=True)
 
         mediana_botao = tk.Button(
             botao_frame, text="Encontrar mediana", command=self.encontrar_mediana
