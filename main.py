@@ -92,7 +92,7 @@ class MedianVisualizer:
         nums = self.entrada.get("1.0", "end-1c").split()
         try:
             nums = [int(num) for num in nums]
-            self.mensagem_erro_label.config(text="")  # Limpa a mensagem de erro se a conversão for bem-sucedida
+            self.mensagem_erro_label.config(text="") 
         except ValueError:
             self.mensagem_erro_label.config(text="Erro: Por favor, insira apenas números.")
             return
