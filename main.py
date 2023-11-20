@@ -1,5 +1,19 @@
 import tkinter as tk
 import random
+from dataclasses import dataclass
+from time import sleep
+
+@dataclass
+class Item:
+    text: int
+    rectangle: int
+    value: int
+
+    def __lt__(self, other):
+        return self.value < other.value
+    
+    def __eq__(self, other):
+        return self.value == other.value
 
 class MedianVisualizer:
     small_pad = 10
@@ -7,73 +21,89 @@ class MedianVisualizer:
     def __init__(self, root, data):
         self.root = root
         self.root.title("Visualização do Algoritmo das Medianas")
-        
         self.data = data
-        self.rectangles = []
-        self.texts = []
-
+        self.last_rect = 0
+        self.items = []
         self.criar_widgets()
         self.draw_data()
 
     def draw_data(self):
         data_len = len(self.data)
-        rect_width = 300 // data_len if data_len > 0 else 0
+        canvas_width = 300
+        rect_width = canvas_width // data_len if data_len > 0 else 0
+
+        max_value = max(self.data)
+        
         for i, value in enumerate(self.data):
+            scaled_value = (value / max_value) * 200 
+
             x1 = i * rect_width
             y1 = 200
             x2 = (i + 1) * rect_width
-            y2 = 200 - value
-            
+            y2 = 200 - scaled_value
+
             rect = self.canvas.create_rectangle(x1, y1, x2, y2, fill="blue")
-            self.rectangles.append(rect)
 
             text_x = (x1 + x2) / 2
-            text_y = (y1 + y2) / 2
-            text = self.canvas.create_text(text_x, text_y, text=str(value), fill="white")
-            self.texts.append(text)
+            text_y = y1 + 10
+            text = self.canvas.create_text(text_x, text_y, text=str(value), fill="black")
 
-    def update_visualization(self, pivot_idx):
-        for i, (rect, text) in enumerate(zip(self.rectangles, self.texts)):
-            color = "red" if i == pivot_idx else "blue"
-            self.canvas.itemconfig(rect, fill=color)
-            self.root.update_idletasks()
-            self.root.after(500)
+            item = Item(text, rect, value)
+            self.items.append(item)
 
-    def quick_select(self, l, r, k):
-        if l == r:
-            return l
+    def update_visualization(self, pivot):
+        self.canvas.itemconfig(self.last_rect, fill="blue")
+        self.canvas.itemconfig(pivot.rectangle, fill="red")
+        self.last_rect = pivot.rectangle
+        self.root.update_idletasks()
+        self.root.after(500)
+        sleep(2)
 
-        pivot_idx = self.partition(l, r)
-        self.update_visualization(pivot_idx)
+    def select_pivot(self, arr, k):
+        chunks = [arr[i : i+5] for i in range(0, len(arr), 5)]
 
-        if k == pivot_idx:
-            return k
-        elif k < pivot_idx:
-            return self.quick_select(l, pivot_idx - 1, k)
+        sorted_chunks = [sorted(chunk) for chunk in chunks]
+        medians = [chunk[len(chunk) // 2] for chunk in sorted_chunks]
+
+        if len(medians) <= 5:
+            pivot = sorted(medians)[len(medians) // 2]
         else:
-            return self.quick_select(pivot_idx + 1, r, k)
+            pivot = self.select_pivot(len(medians) // 2)
 
-    def partition(self, l, r):
-        pivot_idx = random.randint(l, r)
-        pivot_value = self.data[pivot_idx]
+        self.update_visualization(pivot)
+        p = self.partition(arr, pivot)
 
-        self.update_visualization(pivot_idx)
+        if k == p:
+            return pivot
 
-        self.data[pivot_idx], self.data[r] = self.data[r], self.data[pivot_idx]
+        if k < p:
+            return self.select_pivot(arr[0:p], k)
+        else:
+            return self.select_pivot(arr[p+1:len(arr)], k - p - 1)
 
-        i = l - 1
-        for j in range(l, r):
-            if self.data[j] <= pivot_value:
+    def partition(self, arr, pivot):
+        left = 0
+        right = len(arr) - 1
+        i = 0
+
+        while i <= right:
+            if arr[i] == pivot:
                 i += 1
-                self.data[i], self.data[j] = self.data[j], self.data[i]
-        self.data[i + 1], self.data[r] = self.data[r], self.data[i + 1]
 
-        return i + 1
-    
+            elif arr[i] < pivot:
+                arr[left], arr[i] = arr[i], arr[left]
+                left += 1
+                i += 1
+            else:
+                arr[right], arr[i] = arr[i], arr[right]
+                right -= 1
+
+        return left
+        
     def encontrar_mediana(self):
-        median_index = self.quick_select(0, len(self.data) - 1, len(self.data) // 2)
-        mediana = self.canvas.itemcget(self.texts[median_index], 'text')
-        self.mediana_label.config(text=f"A mediana é: {mediana}")
+            mediana = self.select_pivot(self.items, len(self.data)//2)
+            self.canvas.itemconfig(mediana.rectangle, fill="green")
+            self.mediana_label.config(text=f"A mediana é: {mediana.value}")
 
     def criar_janelas(self):
         esquerda = tk.Frame(self.root)
@@ -101,16 +131,10 @@ class MedianVisualizer:
         self.draw_data()
     
     def limpar_array(self):
-        data = [0 for _ in range(len(self.data))]
-        self.data = data
-        for rect in self.rectangles:
-            self.canvas.delete(rect)
-        for text in self.texts:
-            self.canvas.delete(text)
+        self.data.clear()
+        self.canvas.delete("all")
 
-        self.rectangles.clear()
-        self.texts.clear()
-        self.draw_data()
+        self.items.clear()
 
     def criar_widgets(self):
         janela_esq, janela_dir = self.criar_janelas()
@@ -150,7 +174,7 @@ class MedianVisualizer:
 
 def main():
     root = tk.Tk()
-    data = [random.randint(50, 150) for _ in range(10)]
+    data = [random.randint(50, 150) for _ in range(9)]
 
     MedianVisualizer(root, data)
 
