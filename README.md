@@ -1,7 +1,5 @@
 # Median Viewer
 
-[Vídeo de apresentação](https://youtu.be/LwViqknGW4I)
-
 **Conteúdo da Disciplina**: Dividir e Conquistar<br>
 
 ## Alunos
